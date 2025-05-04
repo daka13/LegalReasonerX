@@ -1,4 +1,4 @@
-# 🎈 Blank app template
+# 🎈 LegalReasonerX: Legal Document Analysis System
 
 A simple Streamlit app template for you to modify!
 
