@@ -501,6 +501,11 @@ def create_interactive_citation_network(citation_dict, color_palette=None):
                 ),
                 text=[abbreviate_case_name(main_case)],
                 textposition="top center",
+                textfont=dict(
+                    color="black",  # Black text
+                    size=12,        # Slightly larger
+                    family="Arial"
+                ),
                 hoverinfo='text',
                 hovertext=[main_case],
                 name=f"Main: {abbreviate_case_name(main_case)}"
@@ -521,6 +526,11 @@ def create_interactive_citation_network(citation_dict, color_palette=None):
             ),
             text=[abbreviate_case_name(n) for n in cited_only_nodes],
             textposition="bottom center",
+            textfont=dict(
+                color="black",
+                size=12,
+                family="Arial"
+            ),
             hoverinfo='text',
             hovertext=cited_only_nodes,
             name='Cited Cases Only'
@@ -542,6 +552,11 @@ def create_interactive_citation_network(citation_dict, color_palette=None):
                 ),
                 text=[abbreviate_case_name(node)],
                 textposition="bottom center",
+                textfont=dict(
+                    color="black",
+                    size=12,
+                    family="Arial"
+                ),
                 hoverinfo='text',
                 hovertext=[node],
                 name=f"Dual: {abbreviate_case_name(node)}"
@@ -585,27 +600,38 @@ def create_interactive_citation_network(citation_dict, color_palette=None):
         data=edge_traces + node_traces,
         layout=go.Layout(
             title="Precedent Network",
+            title_font=dict(family="Arial", size=20, color="black"),  # Ensure title is visible
             showlegend=True,
             hovermode='closest',
             margin=dict(b=20, l=5, r=5, t=40),
             xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
             yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
             height=800,
+            paper_bgcolor='white',  # White background for the figure
+            plot_bgcolor='white',   # White background for the plot area
             legend=dict(
                 yanchor="top",
                 y=0.99,
                 xanchor="left",
                 x=0.01,
-                bgcolor="rgba(255, 255, 255, 0.8)"
+                bgcolor="rgba(255, 255, 255, 0.9)",
+                bordercolor="black",
+                borderwidth=1,
+                font=dict(
+                    size=14,
+                    color="black"
+                )
             )
         )
     )
     
-    # Add hover data
+    # Improve hover labels
     fig.update_layout(hoverlabel=dict(
-        bgcolor="white",
-        font_size=12,
-        font_family="Arial"
+        bgcolor="#333333",
+        font_size=14,
+        font_family="Arial",
+        font_color="white",
+        bordercolor="white"
     ))
     
     # Add arrows to the edges
@@ -635,9 +661,9 @@ def create_interactive_citation_network(citation_dict, color_palette=None):
     
     fig.update_layout(annotations=annotations)
     
-    # Add network metrics as annotations
+    # Add network metrics as annotations with better visibility
     metrics_text = (
-        f"Network Metrics:<br>"
+        f"<b>Network Metrics:</b><br>"
         f"Main Cases: {len(main_cases)}<br>"
         f"Total Nodes: {G.number_of_nodes()}<br>"
         f"Total Edges: {G.number_of_edges()}<br>"
@@ -649,9 +675,9 @@ def create_interactive_citation_network(citation_dict, color_palette=None):
         xref="paper", yref="paper",
         text=metrics_text,
         showarrow=False,
-        font=dict(family="Arial", size=12),
+        font=dict(family="Arial", size=12, color="black"),
         align="left",
-        bgcolor="rgba(255, 255, 255, 0.7)",
+        bgcolor="rgba(255, 255, 255, 0.9)",
         bordercolor="black",
         borderwidth=1,
         borderpad=4
@@ -837,6 +863,46 @@ def create_formatted_data(opinion_data, case_name):
             all_opinion += opinion
     
     return all_opinion
+
+# Add this near the top of your app, before any other elements
+st.markdown("""
+<style>
+.info-box {
+    background-color: white;  /* Keep your white background */
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 15px;
+    margin-bottom: 15px;
+    color: #333;  /* This sets the text color to dark gray */
+}
+
+.citation-box {
+    background-color: #f9f9f9;
+    border-left: 3px solid #2c3e50;
+    padding: 10px;
+    margin: 10px 0;
+    color: black;  /* Black text */
+    font-weight: bold;  /* Bold text */
+}
+
+.error-box {
+    background-color: #ffebee;
+    border: 1px solid #ffcdd2;
+    border-radius: 5px;
+    padding: 15px;
+    margin-bottom: 15px;
+    color: #b71c1c;  /* Dark red text */
+}
+
+/* Style for subheaders */
+.sub-header {
+    color: #2c3e50;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+}
+</style>
+""", unsafe_allow_html=True)
+
 
 # Implementation for Citation Lookup tab
 with tabs[0]:
@@ -1087,10 +1153,10 @@ with tabs[2]:
                         with st.expander("View Full Opinion", expanded=False):
                             st.markdown(opinion_details['opinion'])
                         
-                        # Option to compare with base opinion
-                        if st.button("Compare with Base Opinion"):
-                            st.markdown("<h3 class='sub-header'>Opinion Comparison</h3>", unsafe_allow_html=True)
-                            st.info("This feature would use NLP to compare the base and precedent opinions, highlighting similarities and differences in legal reasoning.")
+                        # # Option to compare with base opinion
+                        # if st.button("Compare with Base Opinion"):
+                        #     st.markdown("<h3 class='sub-header'>Opinion Comparison</h3>", unsafe_allow_html=True)
+                        #     st.info("This feature would use NLP to compare the base and precedent opinions, highlighting similarities and differences in legal reasoning.")
                 
                 # Show total count
                 st.info(f"Total precedent opinions: {len(precedent_opinions[selected_case])}")

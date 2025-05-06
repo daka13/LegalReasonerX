@@ -9,16 +9,14 @@ A simple Streamlit app template for you to modify!
 1. Install the requirements
 
    ```
-   $ pip install -r requirements.txt
-   $ pip install streamlit requests networkx matplotlib numpy plotly bs4 openai
+   pip install -r requirements.txt
    ```
-2. Save the code as app.py
-3. Run the app: 
+2. Run the app: 
    ```
-   $ streamlit run streamlit_app.py
+   streamlit run streamlit_app.py
    ```
-4. Enter your CourtListener API token in the sidebar (required)
-5. Optionally, enter an OpenAI API key if you want to use the reasoning framework
+3. Enter your CourtListener API token in the sidebar (required)
+4. Optionally, enter an OpenAI API key if you want to use the reasoning framework
 
 ### Workflow
 
