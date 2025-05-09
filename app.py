@@ -1,9 +1,7 @@
 # app.py
 import streamlit as st
 import requests
-import re
-import time
-import json
+from openai import OpenAI
 import networkx as nx
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
@@ -110,7 +108,7 @@ with st.sidebar:
     """)
 
 # Main tab interface
-tabs = st.tabs(["Citation Lookup", "Precedent Network", "Opinion Analysis", "Reasoning Framework"])
+tabs = st.tabs(["Citation Lookup", "Precedent Network", "Opinion Analysis", "Reasoning Framework", "Entity Extraction"])
 
 # Utility functions
 def make_get_request(url, api_token):
@@ -931,7 +929,7 @@ with tabs[0]:
         process_citation = st.button("Process Citation")
     
     if process_citation and citation_input:
-        result = get_precedents(citation_input, st.session_state.api_token)
+        result = get_precedents(citation_input.upper(), st.session_state.api_token)
         
         if isinstance(result, str):
             # Display error message
@@ -1115,17 +1113,25 @@ with tabs[2]:
                             st.markdown(opinion_details['opinion'])
                         
                         # Option to analyze entities in the opinion
-                        if st.button(f"Extract Entities from {opinion_title}", key=f"entities_{i}"):
-                            with st.spinner("Extracting entities..."):
-                                # This would typically use an NLP model or OpenAI API
-                                # For now, just display a placeholder
-                                st.markdown("""
-                                **Extracted Entities:**
-                                - Judge Smith: Presiding judge
-                                - Jane Doe: Plaintiff
-                                - John Smith: Defendant
-                                - Acme Corp: Corporate entity
-                                """)
+                        st.warning("⚠️ Note: This feature requires an OpenAI API key to be set in the sidebar.")
+                        if st.button(f"Extract Entities from {opinion_details['case_name']}", key=f"entities_{i}"):
+                            with st.spinner("Extracting entities..."):                                
+                                # Import OpenAI
+                                client = OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
+                                # Extract entities from base opinion and precedents
+                                entity_response = client.chat.completions.create(
+                                    model="gpt-4o",
+                                    messages=[
+                                        {"role": "system", "content": "Entity Recognizer and extractor, Output in a list only"},
+                                        {"role": "user", "content": f"Extract the entities and their role or position in {opinion_details['opinion']}"}
+                                    ]
+                                )
+                                extracted_entities = entity_response.choices[0].message.content
+                                st.session_state.base_entites = extracted_entities
+                                st.markdown("<h4 class='sub-header'>Entities</h4>", unsafe_allow_html=True)
+                                st.markdown(f"{extracted_entities}")
+                        elif "base_entites" in st.session_state:
+                            st.markdown(st.session_state.base_entites)
             else:
                 st.info(f"No base opinions found for {selected_case}.")
         
@@ -1133,9 +1139,11 @@ with tabs[2]:
             # Display precedent opinions
             if selected_case in precedent_opinions and precedent_opinions[selected_case]:
                 # Create a selection for precedent opinions
+                # Show total count
+                st.info(f"Total precedent opinions: {len(precedent_opinions[selected_case])}")
                 precedent_list = [list(opinion.keys())[0] for opinion in precedent_opinions[selected_case]]
                 selected_precedent = st.selectbox("Select a precedent opinion:", precedent_list)
-                
+
                 # Find the selected precedent
                 for opinion_data in precedent_opinions[selected_case]:
                     if selected_precedent in opinion_data:
@@ -1144,7 +1152,7 @@ with tabs[2]:
                         # Display opinion metadata
                         st.markdown(f"""
                         **Case Name:** {opinion_details['case_name']}  
-                        **Citation:** {opinion_details['citation']}  
+                        **Base Opinion Citation:** {opinion_details['citation']}  
                         **Opinion Type:** {opinion_details['type']}  
                         **Source:** [{opinion_details['link']}]({opinion_details['link']})
                         """)
@@ -1152,14 +1160,72 @@ with tabs[2]:
                         # Display full text of opinion in an expandable section
                         with st.expander("View Full Opinion", expanded=False):
                             st.markdown(opinion_details['opinion'])
+
+                        # Option to analyze entities in the opinion
+                        st.warning("⚠️ Note: This feature requires an OpenAI API key to be set in the sidebar.")
+                        seperation_tabs = st.tabs(["Entity Extraction", "Opinion Comparison"])
                         
-                        # # Option to compare with base opinion
-                        # if st.button("Compare with Base Opinion"):
-                        #     st.markdown("<h3 class='sub-header'>Opinion Comparison</h3>", unsafe_allow_html=True)
-                        #     st.info("This feature would use NLP to compare the base and precedent opinions, highlighting similarities and differences in legal reasoning.")
-                
-                # Show total count
-                st.info(f"Total precedent opinions: {len(precedent_opinions[selected_case])}")
+                        with seperation_tabs[0]:
+                            if st.button(f"Extract Entities from {opinion_details['case_name']}", key=f"entities_{opinion_details['case_name']}"):
+                                with st.spinner("Extracting entities..."):
+                                    
+                                    # Import OpenAI
+                                    client = OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
+
+                                    # Extract entities from base opinion and precedents
+                                    entity_response = client.chat.completions.create(
+                                        model="gpt-4o",
+                                        messages=[
+                                            {"role": "system", "content": "Entity Recognizer and extractor, Output in a list only"},
+                                            {"role": "user", "content": f"Extract the entities and their role or position in {opinion_details['opinion']}"}
+                                        ]
+                                    )
+                                    
+                                    extracted_entities = entity_response.choices[0].message.content
+                                    st.session_state.precedent_entities = extracted_entities
+
+                                    st.markdown("<h4 class='sub-header'>Entities</h4>", unsafe_allow_html=True)
+                                    st.markdown(f"{extracted_entities}")
+                            elif "precedent_entities" in st.session_state:
+                                st.markdown("<h4 class='sub-header'>Entities</h4>", unsafe_allow_html=True)
+                                st.markdown(f"{st.session_state.precedent_entities}")
+                        
+                        # Option to compare with base opinion
+                        with seperation_tabs[1]:
+                            if st.button("Compare with Base Opinion"):
+                                st.markdown("<h3 class='sub-header'>Opinion Comparison</h3>", unsafe_allow_html=True)
+                                with st.spinner("Comparing Opinions..."):
+                                    # Import OpenAI
+                                    client = OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
+
+                                    system = """
+                                    Compare the provided precedent case and base opinion, analyzing key similarities and differences. Structure your response with:
+
+                                    1. Summary (brief overview of both cases)
+                                    2. Legal Issues (what questions of law are addressed)
+                                    3. Key Holdings (main decisions in each case)
+                                    4. Legal Reasoning (rationale behind the decisions)
+                                    5. Application (how the precedent applies to the base case)
+                                    6. Conclusion (significance of the relationship between cases)
+
+                                    Format using clear headings and concise language. Focus on legal principles rather than factual details unless directly relevant to the application of law.
+                                    """
+
+                                    # Extract entities from base opinion and precedents
+                                    response = client.chat.completions.create(
+                                        model="gpt-4o",
+                                        messages=[
+                                            {"role": "system", "content": system},
+                                            {"role": "user", "content": f"Compare base opinion:\n```{st.session_state.base_opinions}```\nand\nprecedent opinion:\n{opinion_details['opinion']}"}
+                                        ]
+                                    )
+                                    
+                                    extracted_response = response.choices[0].message.content
+                                    st.session_state.compared_responses = extracted_response
+                                    st.markdown(f"{extracted_response}")
+                            elif "compared_responses" in st.session_state:
+                                st.markdown(f"{st.session_state.compared_responses}")
+
             else:
                 st.info(f"No precedent opinions found for {selected_case}.")
 
@@ -1184,7 +1250,6 @@ with tabs[3]:
     else:
         try:
             # Import OpenAI
-            from openai import OpenAI
             client = OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
             
             # Get the opinions from session state
@@ -1232,8 +1297,14 @@ with tabs[3]:
                     3. The holding and ratio decidendi
                     4. How the precedent logically connects to and supports the argument
                     5. The strength and relevance of the precedent
+                    6. Include the source link where necessary
                     
-                    Include the source link where necessary. Format your response in Markdown.
+                    Highlight from precedents which are Controlling Precedent and Persuasive Precedent, Significant fact (if it changed the outcome could have been different) and Insignificant fact then
+                    You create a session called Reasoning, explaining the reasoning that shows how each of the precedents affect the base holding, you must discuss how each precedents must have affected the holding no matter how small,
+                    
+                    Note:
+                    You must discuss all Precedents.
+                    Format your response in Markdown.
                     """
                     
                     # Analyze the precedents
@@ -1257,24 +1328,6 @@ with tabs[3]:
                 # Display the precedent analysis
                 st.markdown("<h3 class='sub-header'>Precedent Analysis</h3>", unsafe_allow_html=True)
                 st.markdown(st.session_state.analysis)
-                
-                # Entity extraction (optional)
-                if st.button("Extract Key Entities"):
-                    with st.spinner("Extracting entities..."):
-                        # Extract entities from base opinion and precedents
-                        entity_response = client.chat.completions.create(
-                            model="gpt-4o",
-                            messages=[
-                                {"role": "system", "content": "Entity Recognizer and extractor, Output in a list only"},
-                                {"role": "user", "content": f"Extract the entities and their role or position in {base_opinion_text} and {precedent_opinion_text}"}
-                            ]
-                        )
-                        
-                        entities = entity_response.choices[0].message.content
-                        
-                        # Display entities
-                        st.markdown("<h3 class='sub-header'>Key Entities</h3>", unsafe_allow_html=True)
-                        st.markdown(entities)
             
             # If analysis has been run previously, show it
             elif 'analysis' in st.session_state:
@@ -1285,7 +1338,72 @@ with tabs[3]:
                 # Display the precedent analysis
                 st.markdown("<h3 class='sub-header'>Precedent Analysis</h3>", unsafe_allow_html=True)
                 st.markdown(st.session_state.analysis)
-        
+    
+        except Exception as e:
+            st.error(f"An error occurred: {str(e)}")
+            st.markdown("""
+            <div class="error-box">
+            This feature requires a valid OpenAI API key and may incur costs. 
+            Please check your API key and try again.
+            </div>
+            """, unsafe_allow_html=True)
+
+# Implementation for Entity Extraction tab
+with tabs[4]:
+    st.markdown("<h2 class='sub-header'>Key Entities</h2>", unsafe_allow_html=True)
+    
+    st.markdown("""
+    <div class="info-box">
+    This advanced tool uses AI to analyze how precedent cases support legal arguments in the base case.
+    It extracts the legal reasoning and connects it to supporting precedents.
+    
+    ⚠️ Note: This feature requires an OpenAI API key to be set in the sidebar.
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Check if we have opinion data and OpenAI API key
+    if 'base_opinions' not in st.session_state or 'precedent_opinions' not in st.session_state:
+        st.warning("Please first process a citation and extract opinions in the previous tabs.")
+    elif not os.environ.get('OPENAI_API_KEY'):
+        st.warning("Please enter your OpenAI API key in the sidebar to use this feature.")
+    else:
+        try:
+            # Import OpenAI
+            client = OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
+            
+            # Get the opinions from session state
+            base_opinions = st.session_state.base_opinions
+            precedent_opinions = st.session_state.precedent_opinions
+
+            # Entity extraction (optional)
+            if st.button("Extract Key Entities"):
+                with st.spinner("Extracting entities..."):
+                    # Format the opinions for analysis
+                    base_opinion_text = base_opinions #create_formatted_data(base_opinions, selected_case)
+                    precedent_opinion_text = precedent_opinions #create_formatted_data(precedent_opinions, selected_case)
+
+                    # Extract entities from base opinion and precedents
+                    entity_response = client.chat.completions.create(
+                        model="gpt-4o",
+                        messages=[
+                            {"role": "system", "content": "Entity Recognizer and extractor, Output in a prose list only"},
+                            {"role": "user", "content": f"Extract all the entities and their role or position, also indicate the cases there were extracted from in {base_opinion_text} and {precedent_opinion_text}"}
+                        ]
+                    )
+                    
+                    entities = entity_response.choices[0].message.content
+
+                    # Save analysis in session state
+                    st.session_state.entities = entities
+                    
+                    # Display entities
+                    st.markdown("<h3 class='sub-header'>Key Entities</h3>", unsafe_allow_html=True)
+                    st.markdown(st.session_state.entities)
+     
+            elif 'entities' in st.session_state:
+                    # Display entities
+                    st.markdown("<h3 class='sub-header'>Key Entities</h3>", unsafe_allow_html=True)
+                    st.markdown(st.session_state.entities)
         except Exception as e:
             st.error(f"An error occurred: {str(e)}")
             st.markdown("""
