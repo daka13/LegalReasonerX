@@ -28,10 +28,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Serve static files
-app.mount("/static", StaticFiles(directory="static"), name="static")
-app.mount("/css", StaticFiles(directory="frontend/css"), name="css")
-app.mount("/js", StaticFiles(directory="frontend/js"), name="js")
+# Serve static files - create directories if they don't exist
+static_dirs = {
+    "/static": "static",
+    "/css": "frontend/css",
+    "/js": "frontend/js"
+}
+
+for mount_path, directory in static_dirs.items():
+    if not os.path.exists(directory):
+        os.makedirs(directory, exist_ok=True)
+    app.mount(mount_path, StaticFiles(directory=directory), name=directory.replace("/", "_"))
 
 
 # Pydantic models
