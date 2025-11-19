@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Opinion Analysis - LegalReasonerX</title>
+    <link rel="stylesheet" href="/css/main.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        .opinion-selector {
+            background: var(--bg-light);
+            padding: var(--spacing-lg);
+            border-radius: var(--radius-lg);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .opinion-card {
+            background: white;
+            border: 2px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-lg);
+            margin-bottom: var(--spacing-md);
+            transition: all var(--transition-base);
+        }
+
+        .opinion-card:hover {
+            border-color: var(--primary-light);
+            box-shadow: 0 8px 25px var(--shadow);
+        }
+
+        .opinion-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-md);
+            border-bottom: 2px solid var(--border);
+        }
+
+        .opinion-metadata {
+            flex: 1;
+        }
+
+        .opinion-type-badge {
+            display: inline-block;
+            padding: var(--spacing-xs) var(--spacing-md);
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white;
+            border-radius: var(--radius-full);
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .opinion-text {
+            max-height: 400px;
+            overflow-y: auto;
+            padding: var(--spacing-md);
+            background: var(--bg-light);
+            border-radius: var(--radius-md);
+            line-height: 1.8;
+            white-space: pre-wrap;
+        }
+
+        .opinion-text::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .opinion-text::-webkit-scrollbar-track {
+            background: var(--border);
+            border-radius: var(--radius-md);
+        }
+
+        .opinion-text::-webkit-scrollbar-thumb {
+            background: var(--primary-light);
+            border-radius: var(--radius-md);
+        }
+
+        .opinion-actions {
+            display: flex;
+            gap: var(--spacing-sm);
+            margin-top: var(--spacing-md);
+            flex-wrap: wrap;
+        }
+
+        .expand-btn {
+            background: none;
+            border: none;
+            color: var(--primary-light);
+            cursor: pointer;
+            font-weight: 600;
+            padding: var(--spacing-sm);
+            transition: all var(--transition-base);
+        }
+
+        .expand-btn:hover {
+            color: var(--primary);
+            text-decoration: underline;
+        }
+
+        .precedent-select {
+            width: 100%;
+            padding: var(--spacing-md);
+            border: 2px solid var(--border);
+            border-radius: var(--radius-md);
+            font-size: 1rem;
+            transition: all var(--transition-base);
+            background: white;
+        }
+
+        .precedent-select:focus {
+            border-color: var(--primary-light);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .opinion-count {
+            background: var(--secondary);
+            color: white;
+            padding: var(--spacing-xs) var(--spacing-md);
+            border-radius: var(--radius-full);
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-left: var(--spacing-sm);
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/" class="logo">
+                <span class="logo-icon">⚖️</span>
+                <span>LegalReasonerX</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="/" class="nav-link">Home</a></li>
+                <li><a href="/citation-lookup" class="nav-link">Citation Lookup</a></li>
+                <li><a href="/network-viz" class="nav-link">Network</a></li>
+                <li><a href="/opinion-analysis" class="nav-link active">Opinions</a></li>
+                <li><a href="/reasoning" class="nav-link">Reasoning</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container">
+        <h1>📄 Opinion Analysis</h1>
+        <p class="mb-3">Extract and analyze full legal opinions from base cases and their precedents.</p>
+
+        <!-- Opinion Selector -->
+        <div class="opinion-selector">
+            <h3 style="margin-bottom: var(--spacing-md);">Select a Case</h3>
+            <div class="input-group" style="margin-bottom: 0;">
+                <label for="case-select">Case</label>
+                <select id="case-select" onchange="loadOpinions()">
+                    <option value="">-- Select a case --</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Base Opinions Section -->
+        <div id="base-opinions-section" class="hidden">
+            <h2>
+                📋 Base Opinions
+                <span id="base-count" class="opinion-count">0</span>
+            </h2>
+            <div id="base-opinions-container"></div>
+        </div>
+
+        <!-- Precedent Opinions Section -->
+        <div id="precedent-opinions-section" class="hidden">
+            <h2>
+                ⚖️ Precedent Opinions
+                <span id="precedent-count" class="opinion-count">0</span>
+            </h2>
+            <div class="mb-2">
+                <label for="precedent-select">Select a precedent opinion</label>
+                <select id="precedent-select" class="precedent-select" onchange="displaySelectedPrecedent()">
+                    <option value="">-- Select a precedent --</option>
+                </select>
+            </div>
+            <div id="precedent-opinions-container"></div>
+        </div>
+    </div>
+
+    <script src="/js/utils.js"></script>
+    <script>
+        let allOpinions = null;
+        let currentCase = null;
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            const precedentData = Storage.getPrecedentData();
+            const apiToken = Storage.getCourtListenerToken();
+
+            if (!precedentData || !apiToken) {
+                UI.showWarning('No precedent data found. Please process a citation first.');
+                setTimeout(() => {
+                    window.location.href = '/citation-lookup';
+                }, 3000);
+                return;
+            }
+
+            // Populate case selector
+            populateCaseSelector(precedentData);
+
+            // Load opinions
+            await fetchOpinions(precedentData, apiToken);
+        });
+
+        function populateCaseSelector(precedentData) {
+            const caseSelect = document.getElementById('case-select');
+            const cases = Object.keys(precedentData.citation_caseName_map || {});
+
+            cases.forEach(caseName => {
+                const option = document.createElement('option');
+                option.value = caseName;
+                option.textContent = caseName;
+                caseSelect.appendChild(option);
+            });
+
+            // Auto-select first case if available
+            if (cases.length > 0) {
+                caseSelect.value = cases[0];
+                loadOpinions();
+            }
+        }
+
+        async function fetchOpinions(precedentData, apiToken) {
+            UI.showLoading('Extracting opinions...');
+
+            try {
+                const response = await API.extractOpinions(apiToken, precedentData);
+
+                if (response.success) {
+                    allOpinions = response.data;
+                    UI.showSuccess('Opinions extracted successfully!');
+                }
+            } catch (error) {
+                UI.showError(error.message || 'Failed to extract opinions.');
+            } finally {
+                UI.hideLoading();
+            }
+        }
+
+        function loadOpinions() {
+            const caseSelect = document.getElementById('case-select');
+            currentCase = caseSelect.value;
+
+            if (!currentCase || !allOpinions) return;
+
+            displayBaseOpinions();
+            displayPrecedentOpinions();
+        }
+
+        function displayBaseOpinions() {
+            const section = document.getElementById('base-opinions-section');
+            const container = document.getElementById('base-opinions-container');
+            const countBadge = document.getElementById('base-count');
+
+            section.classList.remove('hidden');
+
+            const baseOpinions = allOpinions.base_opinions[currentCase] || [];
+            countBadge.textContent = baseOpinions.length;
+
+            if (baseOpinions.length === 0) {
+                container.innerHTML = '<p class="alert alert-info">No base opinions found for this case.</p>';
+                return;
+            }
+
+            let html = '';
+
+            baseOpinions.forEach((opinionObj, index) => {
+                const opinionKey = Object.keys(opinionObj)[0];
+                const opinion = opinionObj[opinionKey];
+
+                html += `
+                    <div class="opinion-card" style="animation: slideInUp 0.5s ease-out ${index * 0.1}s both;">
+                        <div class="opinion-header">
+                            <div class="opinion-metadata">
+                                <div class="opinion-type-badge">${opinion.type}</div>
+                                <h3 style="margin-bottom: var(--spacing-sm);">${opinion.case_name}</h3>
+                                <p style="color: var(--text-secondary); margin-bottom: var(--spacing-xs);">
+                                    <strong>Citation:</strong> ${opinion.citation}
+                                </p>
+                                <p style="color: var(--text-secondary);">
+                                    <strong>Source:</strong> <a href="${opinion.link}" target="_blank" style="color: var(--primary-light);">View on CourtListener</a>
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="opinion-text" id="base-text-${index}">
+                            ${opinion.opinion.substring(0, 1000)}${opinion.opinion.length > 1000 ? '...' : ''}
+                        </div>
+
+                        <div class="opinion-actions">
+                            ${opinion.opinion.length > 1000 ? `
+                                <button class="btn btn-outline" onclick="toggleFullText('base-text-${index}', ${index}, 'base')">
+                                    📖 View Full Opinion
+                                </button>
+                            ` : ''}
+                            <button class="btn btn-outline" onclick="copyToClipboard('${opinion.opinion.replace(/'/g, "\\'")}')">
+                                📋 Copy Text
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function displayPrecedentOpinions() {
+            const section = document.getElementById('precedent-opinions-section');
+            const select = document.getElementById('precedent-select');
+            const countBadge = document.getElementById('precedent-count');
+
+            section.classList.remove('hidden');
+
+            const precedentOpinions = allOpinions.precedent_opinions[currentCase] || [];
+            countBadge.textContent = precedentOpinions.length;
+
+            // Clear previous options
+            select.innerHTML = '<option value="">-- Select a precedent --</option>';
+
+            if (precedentOpinions.length === 0) {
+                document.getElementById('precedent-opinions-container').innerHTML =
+                    '<p class="alert alert-info">No precedent opinions found for this case.</p>';
+                return;
+            }
+
+            // Populate select dropdown
+            precedentOpinions.forEach((opinionObj, index) => {
+                const opinionKey = Object.keys(opinionObj)[0];
+                const opinion = opinionObj[opinionKey];
+
+                const option = document.createElement('option');
+                option.value = index;
+                option.textContent = `${opinion.case_name} - ${opinion.type}`;
+                select.appendChild(option);
+            });
+
+            // Auto-select first precedent
+            select.value = 0;
+            displaySelectedPrecedent();
+        }
+
+        function displaySelectedPrecedent() {
+            const select = document.getElementById('precedent-select');
+            const container = document.getElementById('precedent-opinions-container');
+            const index = parseInt(select.value);
+
+            if (isNaN(index)) {
+                container.innerHTML = '';
+                return;
+            }
+
+            const precedentOpinions = allOpinions.precedent_opinions[currentCase];
+            const opinionObj = precedentOpinions[index];
+            const opinionKey = Object.keys(opinionObj)[0];
+            const opinion = opinionObj[opinionKey];
+
+            const html = `
+                <div class="opinion-card" style="animation: scaleIn 0.5s ease-out;">
+                    <div class="opinion-header">
+                        <div class="opinion-metadata">
+                            <div class="opinion-type-badge">${opinion.type}</div>
+                            <h3 style="margin-bottom: var(--spacing-sm);">${opinion.case_name}</h3>
+                            <p style="color: var(--text-secondary); margin-bottom: var(--spacing-xs);">
+                                <strong>Citation:</strong> ${opinion.citation}
+                            </p>
+                            <p style="color: var(--text-secondary);">
+                                <strong>Source:</strong> <a href="${opinion.link}" target="_blank" style="color: var(--primary-light);">View on CourtListener</a>
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="opinion-text" id="precedent-text-${index}">
+                        ${opinion.opinion.substring(0, 1000)}${opinion.opinion.length > 1000 ? '...' : ''}
+                    </div>
+
+                    <div class="opinion-actions">
+                        ${opinion.opinion.length > 1000 ? `
+                            <button class="btn btn-outline" onclick="toggleFullText('precedent-text-${index}', ${index}, 'precedent')">
+                                📖 View Full Opinion
+                            </button>
+                        ` : ''}
+                        <button class="btn btn-outline" onclick="copyToClipboard(\`${opinion.opinion.replace(/`/g, "\\`")}\`)">
+                            📋 Copy Text
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            container.innerHTML = html;
+        }
+
+        function toggleFullText(elementId, index, type) {
+            const element = document.getElementById(elementId);
+            const opinions = type === 'base' ?
+                allOpinions.base_opinions[currentCase] :
+                allOpinions.precedent_opinions[currentCase];
+
+            const opinionObj = opinions[index];
+            const opinionKey = Object.keys(opinionObj)[0];
+            const fullText = opinionObj[opinionKey].opinion;
+
+            if (element.textContent.includes('...')) {
+                element.textContent = fullText;
+                event.target.textContent = '📕 Show Less';
+            } else {
+                element.textContent = fullText.substring(0, 1000) + '...';
+                event.target.textContent = '📖 View Full Opinion';
+            }
+        }
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                UI.showSuccess('Opinion text copied to clipboard!');
+            }).catch(err => {
+                UI.showError('Failed to copy text.');
+            });
+        }
+    </script>
+</body>
+</html>

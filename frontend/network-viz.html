@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Visualization - LegalReasonerX</title>
+    <link rel="stylesheet" href="/css/main.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        #network-container {
+            background: white;
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-md);
+            box-shadow: 0 4px 20px var(--shadow);
+            min-height: 600px;
+            position: relative;
+        }
+
+        #network-svg {
+            width: 100%;
+            height: 600px;
+            border: 2px solid var(--border);
+            border-radius: var(--radius-md);
+        }
+
+        .node circle {
+            stroke: #fff;
+            stroke-width: 2px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .node:hover circle {
+            stroke-width: 4px;
+            filter: brightness(1.1);
+        }
+
+        .node text {
+            font-size: 12px;
+            font-weight: 600;
+            pointer-events: none;
+        }
+
+        .link {
+            stroke-opacity: 0.6;
+            stroke-width: 2px;
+        }
+
+        .link:hover {
+            stroke-opacity: 1;
+            stroke-width: 3px;
+        }
+
+        .network-controls {
+            display: flex;
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+            flex-wrap: wrap;
+        }
+
+        .legend {
+            background: var(--bg-light);
+            padding: var(--spacing-md);
+            border-radius: var(--radius-md);
+            margin-top: var(--spacing-md);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 2px solid white;
+        }
+
+        .stats-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .stat-box {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white;
+            padding: var(--spacing-lg);
+            border-radius: var(--radius-lg);
+            text-align: center;
+            transition: transform var(--transition-base);
+        }
+
+        .stat-box:hover {
+            transform: translateY(-3px);
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 800;
+            display: block;
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/" class="logo">
+                <span class="logo-icon">⚖️</span>
+                <span>LegalReasonerX</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="/" class="nav-link">Home</a></li>
+                <li><a href="/citation-lookup" class="nav-link">Citation Lookup</a></li>
+                <li><a href="/network-viz" class="nav-link active">Network</a></li>
+                <li><a href="/opinion-analysis" class="nav-link">Opinions</a></li>
+                <li><a href="/reasoning" class="nav-link">Reasoning</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container">
+        <h1>🕸️ Precedent Network Visualization</h1>
+        <p class="mb-3">Explore the citation network between cases with an interactive force-directed graph.</p>
+
+        <!-- Statistics Panel -->
+        <div id="stats-panel" class="stats-panel hidden"></div>
+
+        <!-- Network Container -->
+        <div class="card">
+            <div class="network-controls">
+                <button class="btn btn-primary" onclick="zoomIn()">
+                    🔍 Zoom In
+                </button>
+                <button class="btn btn-primary" onclick="zoomOut()">
+                    🔎 Zoom Out
+                </button>
+                <button class="btn btn-primary" onclick="resetZoom()">
+                    ↺ Reset View
+                </button>
+                <button class="btn btn-secondary" onclick="regenerateNetwork()">
+                    🔄 Regenerate Layout
+                </button>
+            </div>
+
+            <div id="network-container">
+                <svg id="network-svg"></svg>
+            </div>
+
+            <!-- Legend -->
+            <div id="legend" class="legend hidden"></div>
+        </div>
+
+        <!-- Instructions -->
+        <div class="card mt-3">
+            <h3>💡 How to Use</h3>
+            <ul>
+                <li><strong>Drag nodes</strong> to rearrange the network layout</li>
+                <li><strong>Hover</strong> over nodes to see full case names</li>
+                <li><strong>Zoom</strong> using the controls above or your mouse wheel</li>
+                <li><strong>Click</strong> on nodes to highlight their connections</li>
+            </ul>
+        </div>
+    </div>
+
+    <script src="/js/utils.js"></script>
+    <script>
+        let simulation;
+        let svg;
+        let g;
+        let zoom;
+        let networkData = null;
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const precedentData = Storage.getPrecedentData();
+
+            if (!precedentData || !precedentData.caseName_to_precedent_map) {
+                UI.showWarning('No precedent data found. Please process a citation first.');
+                setTimeout(() => {
+                    window.location.href = '/citation-lookup';
+                }, 3000);
+                return;
+            }
+
+            generateNetwork(precedentData.caseName_to_precedent_map);
+        });
+
+        async function generateNetwork(citationDict) {
+            UI.showLoading('Generating network visualization...');
+
+            try {
+                const response = await API.generateNetwork(citationDict);
+
+                if (response.success) {
+                    networkData = response.data;
+                    displayStats(networkData.stats);
+                    createNetworkVisualization(networkData);
+                    UI.showSuccess('Network generated successfully!');
+                }
+            } catch (error) {
+                UI.showError(error.message || 'Failed to generate network visualization.');
+            } finally {
+                UI.hideLoading();
+            }
+        }
+
+        function displayStats(stats) {
+            const statsPanel = document.getElementById('stats-panel');
+            statsPanel.classList.remove('hidden');
+
+            statsPanel.innerHTML = `
+                <div class="stat-box" style="animation: scaleIn 0.5s ease-out 0.1s both;">
+                    <span class="stat-value">${stats.main_cases}</span>
+                    <span class="stat-label">Main Cases</span>
+                </div>
+                <div class="stat-box" style="animation: scaleIn 0.5s ease-out 0.2s both;">
+                    <span class="stat-value">${stats.total_nodes}</span>
+                    <span class="stat-label">Total Nodes</span>
+                </div>
+                <div class="stat-box" style="animation: scaleIn 0.5s ease-out 0.3s both;">
+                    <span class="stat-value">${stats.total_edges}</span>
+                    <span class="stat-label">Citations</span>
+                </div>
+                <div class="stat-box" style="animation: scaleIn 0.5s ease-out 0.4s both;">
+                    <span class="stat-value">${stats.network_density}</span>
+                    <span class="stat-label">Density</span>
+                </div>
+            `;
+        }
+
+        function createNetworkVisualization(data) {
+            // Clear previous visualization
+            d3.select('#network-svg').selectAll('*').remove();
+
+            const width = document.getElementById('network-container').clientWidth - 40;
+            const height = 600;
+
+            // Create SVG
+            svg = d3.select('#network-svg')
+                .attr('width', width)
+                .attr('height', height);
+
+            // Add zoom behavior
+            zoom = d3.zoom()
+                .scaleExtent([0.1, 4])
+                .on('zoom', (event) => {
+                    g.attr('transform', event.transform);
+                });
+
+            svg.call(zoom);
+
+            // Create container group
+            g = svg.append('g');
+
+            // Create arrow markers for directed edges
+            svg.append('defs').selectAll('marker')
+                .data(['arrow'])
+                .enter().append('marker')
+                .attr('id', 'arrow')
+                .attr('viewBox', '0 -5 10 10')
+                .attr('refX', 25)
+                .attr('refY', 0)
+                .attr('markerWidth', 6)
+                .attr('markerHeight', 6)
+                .attr('orient', 'auto')
+                .append('path')
+                .attr('d', 'M0,-5L10,0L0,5')
+                .attr('fill', '#999');
+
+            // Create force simulation
+            simulation = d3.forceSimulation(data.nodes)
+                .force('link', d3.forceLink(data.edges).id(d => d.id).distance(100))
+                .force('charge', d3.forceManyBody().strength(-300))
+                .force('center', d3.forceCenter(width / 2, height / 2))
+                .force('collision', d3.forceCollide().radius(30));
+
+            // Create links
+            const link = g.append('g')
+                .selectAll('line')
+                .data(data.edges)
+                .enter().append('line')
+                .attr('class', 'link')
+                .attr('stroke', d => d.color)
+                .attr('marker-end', 'url(#arrow)');
+
+            // Create nodes
+            const node = g.append('g')
+                .selectAll('g')
+                .data(data.nodes)
+                .enter().append('g')
+                .attr('class', 'node')
+                .call(d3.drag()
+                    .on('start', dragstarted)
+                    .on('drag', dragged)
+                    .on('end', dragended));
+
+            // Add circles to nodes
+            node.append('circle')
+                .attr('r', d => d.type === 'main' ? 15 : d.type === 'dual' ? 12 : 8)
+                .attr('fill', d => d.color)
+                .on('click', highlightConnections);
+
+            // Add labels
+            node.append('text')
+                .attr('dx', 20)
+                .attr('dy', 4)
+                .text(d => CitationFormatter.abbreviateCaseName(d.label, 30))
+                .style('fill', 'var(--text-primary)');
+
+            // Add tooltips
+            node.append('title')
+                .text(d => d.label);
+
+            // Update positions on simulation tick
+            simulation.on('tick', () => {
+                link
+                    .attr('x1', d => d.source.x)
+                    .attr('y1', d => d.source.y)
+                    .attr('x2', d => d.target.x)
+                    .attr('y2', d => d.target.y);
+
+                node
+                    .attr('transform', d => `translate(${d.x},${d.y})`);
+            });
+
+            // Create legend
+            createLegend(data);
+        }
+
+        function createLegend(data) {
+            const legendDiv = document.getElementById('legend');
+            legendDiv.classList.remove('hidden');
+
+            let legendHTML = '<h4 style="margin-bottom: var(--spacing-sm);">Legend</h4>';
+
+            // Main cases
+            const mainCases = data.nodes.filter(n => n.type === 'main' || n.type === 'dual');
+            mainCases.forEach((node, index) => {
+                const label = node.type === 'main' ? 'Main Case' : 'Main & Cited';
+                legendHTML += `
+                    <div class="legend-item" style="animation: slideInUp 0.3s ease-out ${index * 0.05}s both;">
+                        <div class="legend-color" style="background: ${node.color};"></div>
+                        <span>${CitationFormatter.abbreviateCaseName(node.label, 40)} (${label})</span>
+                    </div>
+                `;
+            });
+
+            // Cited only
+            legendHTML += `
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #1e90ff;"></div>
+                    <span>Cited Cases Only</span>
+                </div>
+            `;
+
+            legendDiv.innerHTML = legendHTML;
+        }
+
+        function dragstarted(event, d) {
+            if (!event.active) simulation.alphaTarget(0.3).restart();
+            d.fx = d.x;
+            d.fy = d.y;
+        }
+
+        function dragged(event, d) {
+            d.fx = event.x;
+            d.fy = event.y;
+        }
+
+        function dragended(event, d) {
+            if (!event.active) simulation.alphaTarget(0);
+            d.fx = null;
+            d.fy = null;
+        }
+
+        function highlightConnections(event, d) {
+            // Reset all
+            d3.selectAll('.node circle').style('opacity', 0.3);
+            d3.selectAll('.link').style('opacity', 0.1);
+
+            // Highlight selected node
+            d3.select(this).style('opacity', 1);
+
+            // Highlight connected links and nodes
+            d3.selectAll('.link')
+                .filter(l => l.source.id === d.id || l.target.id === d.id)
+                .style('opacity', 1)
+                .each(function(l) {
+                    d3.selectAll('.node')
+                        .filter(n => n.id === l.source.id || n.id === l.target.id)
+                        .select('circle')
+                        .style('opacity', 1);
+                });
+
+            // Reset after 3 seconds
+            setTimeout(() => {
+                d3.selectAll('.node circle').style('opacity', 1);
+                d3.selectAll('.link').style('opacity', 0.6);
+            }, 3000);
+        }
+
+        function zoomIn() {
+            svg.transition().duration(300).call(zoom.scaleBy, 1.3);
+        }
+
+        function zoomOut() {
+            svg.transition().duration(300).call(zoom.scaleBy, 0.7);
+        }
+
+        function resetZoom() {
+            svg.transition().duration(500).call(
+                zoom.transform,
+                d3.zoomIdentity
+            );
+        }
+
+        function regenerateNetwork() {
+            if (networkData) {
+                createNetworkVisualization(networkData);
+                UI.showInfo('Network layout regenerated');
+            }
+        }
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            if (networkData) {
+                createNetworkVisualization(networkData);
+            }
+        });
+    </script>
+</body>
+</html>

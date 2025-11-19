@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Citation Lookup - LegalReasonerX</title>
+    <link rel="stylesheet" href="/css/main.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        .citation-result {
+            margin-top: 2rem;
+        }
+
+        .case-card {
+            background: white;
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-lg);
+            margin-bottom: var(--spacing-md);
+            border: 2px solid var(--border);
+            transition: all var(--transition-base);
+            cursor: pointer;
+        }
+
+        .case-card:hover {
+            border-color: var(--primary-light);
+            transform: translateX(5px);
+            box-shadow: -5px 5px 15px var(--shadow);
+        }
+
+        .case-name {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .citation {
+            color: var(--text-secondary);
+            font-style: italic;
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .precedent-list {
+            margin-top: var(--spacing-md);
+        }
+
+        .precedent-item {
+            background: var(--bg-light);
+            padding: var(--spacing-sm) var(--spacing-md);
+            border-radius: var(--radius-md);
+            margin-bottom: var(--spacing-xs);
+            border-left: 3px solid var(--secondary);
+            transition: all var(--transition-fast);
+        }
+
+        .precedent-item:hover {
+            background: rgba(16, 185, 129, 0.1);
+            transform: translateX(3px);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--spacing-md);
+            margin-top: var(--spacing-lg);
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white;
+            padding: var(--spacing-lg);
+            border-radius: var(--radius-lg);
+            text-align: center;
+            transition: transform var(--transition-base);
+        }
+
+        .stat-card:hover {
+            transform: scale(1.05) rotate(-1deg);
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 800;
+            display: block;
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            opacity: 0.9;
+        }
+
+        .example-citations {
+            background: var(--bg-light);
+            padding: var(--spacing-md);
+            border-radius: var(--radius-md);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .example-tag {
+            display: inline-block;
+            background: white;
+            padding: var(--spacing-xs) var(--spacing-md);
+            border-radius: var(--radius-full);
+            margin: var(--spacing-xs);
+            cursor: pointer;
+            transition: all var(--transition-base);
+            border: 2px solid var(--border);
+        }
+
+        .example-tag:hover {
+            background: var(--primary-light);
+            color: white;
+            border-color: var(--primary-light);
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/" class="logo">
+                <span class="logo-icon">⚖️</span>
+                <span>LegalReasonerX</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="/" class="nav-link">Home</a></li>
+                <li><a href="/citation-lookup" class="nav-link active">Citation Lookup</a></li>
+                <li><a href="/network-viz" class="nav-link">Network</a></li>
+                <li><a href="/opinion-analysis" class="nav-link">Opinions</a></li>
+                <li><a href="/reasoning" class="nav-link">Reasoning</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container">
+        <h1>🔍 Citation Lookup</h1>
+        <p class="mb-3">Enter a legal citation to verify it and extract related precedent cases from CourtListener.</p>
+
+        <!-- Example Citations -->
+        <div class="example-citations">
+            <p style="font-weight: 600; margin-bottom: var(--spacing-sm);">
+                <strong>Try an example:</strong>
+            </p>
+            <div>
+                <span class="example-tag" onclick="fillExampleCitation('179 U.S. 77')">179 U.S. 77</span>
+                <span class="example-tag" onclick="fillExampleCitation('520 U.S. 17')">520 U.S. 17</span>
+                <span class="example-tag" onclick="fillExampleCitation('347 U.S. 483')">347 U.S. 483</span>
+                <span class="example-tag" onclick="fillExampleCitation('410 U.S. 113')">410 U.S. 113</span>
+            </div>
+        </div>
+
+        <!-- Input Form -->
+        <div class="card">
+            <form id="citation-form" onsubmit="processCitation(event)">
+                <div class="input-group">
+                    <label for="citation">Legal Citation or Text with Citations</label>
+                    <textarea
+                        id="citation"
+                        rows="4"
+                        placeholder="Enter a legal citation (e.g., '179 U.S. 77') or text containing citations..."
+                        required
+                    ></textarea>
+                    <p style="font-size: 0.875rem; color: var(--text-secondary); margin-top: 0.5rem;">
+                        You can enter multiple citations in the same text. Each will be processed.
+                    </p>
+                </div>
+
+                <button type="submit" class="btn btn-primary">
+                    🔍 Process Citation
+                </button>
+            </form>
+        </div>
+
+        <!-- Results Section -->
+        <div id="results" class="citation-result hidden"></div>
+    </div>
+
+    <script src="/js/utils.js"></script>
+    <script>
+        // Check if API token is available
+        window.addEventListener('DOMContentLoaded', () => {
+            const token = Storage.getCourtListenerToken();
+            if (!token) {
+                UI.showWarning('Please configure your CourtListener API token on the home page before processing citations.');
+            }
+        });
+
+        function fillExampleCitation(citation) {
+            document.getElementById('citation').value = citation;
+            // Add a little animation
+            const textarea = document.getElementById('citation');
+            textarea.style.animation = 'pulse 0.5s ease-out';
+            setTimeout(() => {
+                textarea.style.animation = '';
+            }, 500);
+        }
+
+        async function processCitation(event) {
+            event.preventDefault();
+
+            const citation = document.getElementById('citation').value;
+            const apiToken = Storage.getCourtListenerToken();
+
+            if (!apiToken) {
+                UI.showError('Please configure your CourtListener API token on the home page.');
+                return;
+            }
+
+            UI.showLoading('Processing citation and extracting precedents...');
+
+            try {
+                const response = await API.processCitation(citation, apiToken);
+
+                if (response.success) {
+                    displayResults(response.data);
+                    // Save the data for use in other pages
+                    Storage.setPrecedentData(response.data);
+                    UI.showSuccess('Citation processed successfully!');
+                }
+            } catch (error) {
+                UI.showError(error.message || 'Failed to process citation. Please check your input and API token.');
+            } finally {
+                UI.hideLoading();
+            }
+        }
+
+        function displayResults(data) {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.classList.remove('hidden');
+
+            let html = '<h2>Results</h2>';
+
+            // Citation mapping
+            if (data.citation_caseName_map) {
+                html += '<div class="card mb-3">';
+                html += '<h3>📋 Citation Information</h3>';
+
+                Object.entries(data.citation_caseName_map).forEach(([caseName, citation]) => {
+                    html += `
+                        <div class="case-card">
+                            <div class="case-name">${caseName}</div>
+                            <div class="citation">Citation: ${citation}</div>
+                        </div>
+                    `;
+                });
+
+                html += '</div>';
+            }
+
+            // Precedent cases
+            if (data.caseName_to_precedent_map) {
+                html += '<div class="card">';
+                html += '<h3>⚖️ Precedent Cases</h3>';
+
+                let totalPrecedents = 0;
+
+                Object.entries(data.caseName_to_precedent_map).forEach(([caseName, precedents]) => {
+                    totalPrecedents += precedents.length;
+
+                    html += `
+                        <div class="mb-3">
+                            <h4 style="color: var(--primary); margin-bottom: var(--spacing-sm);">${caseName}</h4>
+                            <p style="color: var(--text-secondary); margin-bottom: var(--spacing-sm);">
+                                <strong>${precedents.length}</strong> precedent${precedents.length !== 1 ? 's' : ''} cited
+                            </p>
+                    `;
+
+                    if (precedents.length > 0) {
+                        html += '<div class="precedent-list">';
+                        precedents.forEach((precedent, index) => {
+                            html += `
+                                <div class="precedent-item" style="animation: slideInUp 0.3s ease-out ${index * 0.05}s both;">
+                                    ${precedent}
+                                </div>
+                            `;
+                        });
+                        html += '</div>';
+                    } else {
+                        html += '<p style="color: var(--text-secondary);">No precedents found for this case.</p>';
+                    }
+
+                    html += '</div>';
+                });
+
+                // Add statistics
+                const caseCount = Object.keys(data.caseName_to_precedent_map).length;
+                html += `
+                    <div class="stats-grid">
+                        <div class="stat-card" style="animation: scaleIn 0.5s ease-out 0.1s both;">
+                            <span class="stat-number">${caseCount}</span>
+                            <span class="stat-label">Main Case${caseCount !== 1 ? 's' : ''}</span>
+                        </div>
+                        <div class="stat-card" style="animation: scaleIn 0.5s ease-out 0.2s both;">
+                            <span class="stat-number">${totalPrecedents}</span>
+                            <span class="stat-label">Total Precedents</span>
+                        </div>
+                    </div>
+                `;
+
+                html += '</div>';
+            }
+
+            // Add navigation buttons
+            html += `
+                <div class="card mt-3">
+                    <h3>🔗 Next Steps</h3>
+                    <p class="mb-2">Now that you've extracted the precedents, you can:</p>
+                    <div class="flex gap-2" style="flex-wrap: wrap;">
+                        <button class="btn btn-primary" onclick="window.location.href='/network-viz'">
+                            🕸️ Visualize Network
+                        </button>
+                        <button class="btn btn-primary" onclick="window.location.href='/opinion-analysis'">
+                            📄 Analyze Opinions
+                        </button>
+                        <button class="btn btn-primary" onclick="window.location.href='/reasoning'">
+                            🧠 AI Reasoning
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            resultsDiv.innerHTML = html;
+
+            // Scroll to results
+            resultsDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    </script>
+</body>
+</html>

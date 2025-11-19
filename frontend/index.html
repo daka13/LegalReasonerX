@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LegalReasonerX - Legal Document Analysis System</title>
+    <link rel="stylesheet" href="/css/main.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        /* Landing Page Specific Styles */
+        .hero {
+            background: linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%);
+            color: white;
+            padding: 6rem 2rem;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            animation: pulse 4s ease-in-out infinite;
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 1;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .hero h1 {
+            color: white;
+            font-size: 3.5rem;
+            margin-bottom: 1.5rem;
+            animation: slideInDown 0.8s ease-out;
+        }
+
+        .hero p {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 1.25rem;
+            margin-bottom: 2rem;
+            animation: slideInUp 0.8s ease-out 0.2s both;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            animation: slideInUp 0.8s ease-out 0.4s both;
+        }
+
+        .hero-buttons .btn {
+            padding: 1rem 2rem;
+            font-size: 1.1rem;
+            background: white;
+            color: var(--primary);
+        }
+
+        .hero-buttons .btn:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .features {
+            padding: 4rem 2rem;
+            background: white;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .feature-card {
+            background: white;
+            border: 2px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            text-align: center;
+            transition: all var(--transition-base);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.1), transparent);
+            transition: left 0.5s;
+        }
+
+        .feature-card:hover {
+            border-color: var(--primary-light);
+            transform: translateY(-8px);
+            box-shadow: 0 15px 40px var(--shadow-lg);
+        }
+
+        .feature-card:hover::before {
+            left: 100%;
+        }
+
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            display: inline-block;
+            transition: transform var(--transition-base);
+        }
+
+        .feature-card:hover .feature-icon {
+            transform: scale(1.2) rotate(5deg);
+        }
+
+        .feature-card h3 {
+            color: var(--primary);
+            margin-bottom: 1rem;
+        }
+
+        .feature-card p {
+            color: var(--text-secondary);
+        }
+
+        .cta-section {
+            background: var(--bg-light);
+            padding: 4rem 2rem;
+            text-align: center;
+        }
+
+        .cta-content {
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .api-keys-section {
+            background: white;
+            padding: 2rem;
+            border-radius: var(--radius-lg);
+            max-width: 600px;
+            margin: 2rem auto;
+            box-shadow: 0 4px 20px var(--shadow);
+        }
+
+        .footer {
+            background: var(--bg-dark);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+        }
+
+        .footer a {
+            color: var(--primary-light);
+            text-decoration: none;
+            transition: color var(--transition-base);
+        }
+
+        .footer a:hover {
+            color: white;
+        }
+
+        /* Floating animation */
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+
+        .floating {
+            animation: float 3s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/" class="logo">
+                <span class="logo-icon">⚖️</span>
+                <span>LegalReasonerX</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="/" class="nav-link active">Home</a></li>
+                <li><a href="/citation-lookup" class="nav-link">Citation Lookup</a></li>
+                <li><a href="/network-viz" class="nav-link">Network</a></li>
+                <li><a href="/opinion-analysis" class="nav-link">Opinions</a></li>
+                <li><a href="/reasoning" class="nav-link">Reasoning</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <h1 class="floating">⚖️ LegalReasonerX</h1>
+            <p>Advanced Legal Document Analysis & Precedent-Driven Reasoning Framework</p>
+            <p>Harness the power of AI to analyze legal citations, visualize precedent networks, and understand complex legal reasoning patterns.</p>
+            <div class="hero-buttons">
+                <button class="btn btn-primary" onclick="scrollToSection('features')">
+                    Explore Features
+                </button>
+                <button class="btn btn-primary" onclick="scrollToSection('api-keys')">
+                    Get Started
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features" id="features">
+        <div class="container">
+            <h2 class="text-center mb-4">Powerful Features</h2>
+            <div class="features-grid">
+                <div class="feature-card" onclick="window.location.href='/citation-lookup'">
+                    <div class="feature-icon">🔍</div>
+                    <h3>Citation Lookup</h3>
+                    <p>Verify legal citations and extract precedent cases using the CourtListener API. Process single or multiple citations instantly.</p>
+                </div>
+
+                <div class="feature-card" onclick="window.location.href='/network-viz'">
+                    <div class="feature-icon">🕸️</div>
+                    <h3>Network Visualization</h3>
+                    <p>Visualize citation networks with interactive graphs. Understand the relationships between cases at a glance.</p>
+                </div>
+
+                <div class="feature-card" onclick="window.location.href='/opinion-analysis'">
+                    <div class="feature-icon">📄</div>
+                    <h3>Opinion Analysis</h3>
+                    <p>Extract and analyze full legal opinions. Compare base opinions with precedents to understand legal reasoning.</p>
+                </div>
+
+                <div class="feature-card" onclick="window.location.href='/reasoning'">
+                    <div class="feature-icon">🧠</div>
+                    <h3>AI Reasoning</h3>
+                    <p>Use AI to analyze how precedent cases support legal arguments. Powered by advanced language models.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- API Keys Section -->
+    <section class="cta-section" id="api-keys">
+        <div class="cta-content">
+            <h2>Configure Your API Keys</h2>
+            <p>To use LegalReasonerX, you'll need API keys from the following services:</p>
+
+            <div class="api-keys-section">
+                <form id="api-keys-form" onsubmit="saveApiKeys(event)">
+                    <div class="input-group">
+                        <label for="courtListenerToken">
+                            CourtListener API Token <span class="badge">Required</span>
+                        </label>
+                        <input
+                            type="password"
+                            id="courtListenerToken"
+                            placeholder="Enter your CourtListener API token"
+                            required
+                        >
+                        <p style="font-size: 0.875rem; color: var(--text-secondary); margin-top: 0.5rem;">
+                            Get your free API token at <a href="https://www.courtlistener.com/sign-in/" target="_blank" style="color: var(--primary-light);">courtlistener.com</a>
+                        </p>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="openaiApiKey">
+                            OpenAI API Key <span class="badge" style="background: var(--text-secondary);">Optional</span>
+                        </label>
+                        <input
+                            type="password"
+                            id="openaiApiKey"
+                            placeholder="Enter your OpenAI API key (optional)"
+                        >
+                        <p style="font-size: 0.875rem; color: var(--text-secondary); margin-top: 0.5rem;">
+                            Required only for the AI Reasoning Framework feature
+                        </p>
+                    </div>
+
+                    <div class="flex gap-2" style="justify-content: center;">
+                        <button type="submit" class="btn btn-primary">
+                            💾 Save API Keys
+                        </button>
+                        <button type="button" class="btn btn-outline" onclick="clearApiKeys()">
+                            🗑️ Clear Keys
+                        </button>
+                    </div>
+                </form>
+
+                <div id="keys-status" class="mt-3"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works Section -->
+    <section class="features">
+        <div class="container">
+            <h2 class="text-center mb-4">How It Works</h2>
+            <div class="grid grid-2">
+                <div class="card">
+                    <h3>1️⃣ Enter a Citation</h3>
+                    <p>Start by entering a legal citation (e.g., "179 U.S. 77") in the Citation Lookup tool. The system will verify the citation and extract all related precedent cases.</p>
+                </div>
+
+                <div class="card">
+                    <h3>2️⃣ Visualize the Network</h3>
+                    <p>View the citation network to see how cases reference each other. The interactive visualization helps you understand complex legal relationships.</p>
+                </div>
+
+                <div class="card">
+                    <h3>3️⃣ Analyze Opinions</h3>
+                    <p>Read full legal opinions from both the base case and all cited precedents. Compare reasoning patterns and extract key insights.</p>
+                </div>
+
+                <div class="card">
+                    <h3>4️⃣ AI-Powered Analysis</h3>
+                    <p>Use AI to analyze how precedent cases support the legal argument in the base case. Get detailed reasoning analysis and entity extraction.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>&copy; 2024 LegalReasonerX - A Framework for Legal Document Analysis and Reasoning</p>
+        <p>Created by David Akinboro | <a href="https://github.com/daka13/LegalReasonerX" target="_blank">View on GitHub</a></p>
+    </footer>
+
+    <script src="/js/utils.js"></script>
+    <script>
+        // Load saved API keys on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            const courtListenerToken = Storage.getCourtListenerToken();
+            const openaiApiKey = Storage.getOpenAIKey();
+
+            if (courtListenerToken) {
+                document.getElementById('courtListenerToken').value = courtListenerToken;
+            }
+
+            if (openaiApiKey) {
+                document.getElementById('openaiApiKey').value = openaiApiKey;
+            }
+
+            updateKeysStatus();
+        });
+
+        function saveApiKeys(event) {
+            event.preventDefault();
+
+            const courtListenerToken = document.getElementById('courtListenerToken').value;
+            const openaiApiKey = document.getElementById('openaiApiKey').value;
+
+            if (courtListenerToken) {
+                Storage.setCourtListenerToken(courtListenerToken);
+            }
+
+            if (openaiApiKey) {
+                Storage.setOpenAIKey(openaiApiKey);
+            }
+
+            UI.showSuccess('API keys saved successfully!');
+            updateKeysStatus();
+        }
+
+        function clearApiKeys() {
+            if (confirm('Are you sure you want to clear all API keys?')) {
+                Storage.remove(STORAGE_KEYS.COURT_LISTENER_TOKEN);
+                Storage.remove(STORAGE_KEYS.OPENAI_API_KEY);
+                document.getElementById('courtListenerToken').value = '';
+                document.getElementById('openaiApiKey').value = '';
+                UI.showInfo('API keys cleared');
+                updateKeysStatus();
+            }
+        }
+
+        function updateKeysStatus() {
+            const statusDiv = document.getElementById('keys-status');
+            const courtListenerToken = Storage.getCourtListenerToken();
+            const openaiApiKey = Storage.getOpenAIKey();
+
+            let statusHTML = '<div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">';
+
+            if (courtListenerToken) {
+                statusHTML += '<span class="badge" style="background: var(--secondary);">✓ CourtListener Key Saved</span>';
+            }
+
+            if (openaiApiKey) {
+                statusHTML += '<span class="badge" style="background: var(--secondary);">✓ OpenAI Key Saved</span>';
+            }
+
+            statusHTML += '</div>';
+
+            statusDiv.innerHTML = statusHTML;
+        }
+
+        function scrollToSection(sectionId) {
+            const section = document.getElementById(sectionId);
+            if (section) {
+                section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+
+        // Add stagger animation to feature cards
+        document.addEventListener('DOMContentLoaded', () => {
+            const featureCards = document.querySelectorAll('.feature-card');
+            featureCards.forEach((card, index) => {
+                card.style.animation = `slideInUp 0.6s ease-out ${index * 0.1}s both`;
+            });
+
+            const cards = document.querySelectorAll('.card');
+            cards.forEach((card, index) => {
+                card.style.animation = `scaleIn 0.6s ease-out ${index * 0.1}s both`;
+            });
+        });
+    </script>
+</body>
+</html>
