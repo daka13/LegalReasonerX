@@ -4,48 +4,154 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Reasoning Framework - LegalReasonerX</title>
-    <link rel="stylesheet" href="/css/main.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/main.css?v=2.0">
     <style>
+        /* Premium Glass Effect with Animated Gradients */
+        body {
+            background: linear-gradient(135deg, #0F172A 0%, #1E293B 20%, #0EA5E9 40%, #8B5CF6 60%, #1E293B 80%, #0F172A 100%);
+            background-size: 300% 300%;
+            animation: gradientFlow 20s ease infinite;
+            position: relative;
+            min-height: 100vh;
+        }
+
+        @keyframes gradientFlow {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        /* Floating orbs for depth */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 10%;
+            left: 10%;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(14, 165, 233, 0.15) 0%, transparent 70%);
+            border-radius: 50%;
+            animation: float 15s ease-in-out infinite;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            bottom: 10%;
+            right: 10%;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(139, 92, 246, 0.15) 0%, transparent 70%);
+            border-radius: 50%;
+            animation: float 18s ease-in-out infinite reverse;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(30px, -30px) scale(1.1); }
+            66% { transform: translate(-20px, 20px) scale(0.9); }
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Premium page header */
+        .page-header {
+            text-align: center;
+            padding: 3rem 0 2rem;
+            animation: slideInDown 0.6s ease-out;
+        }
+
+        .page-title {
+            font-size: clamp(2.5rem, 5vw, 3.5rem);
+            background: linear-gradient(135deg, #FFFFFF 0%, #E0F2FE 50%, #DDD6FE 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+            font-family: var(--font-display);
+        }
+
+        .page-subtitle {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 1.125rem;
+        }
+
         .reasoning-card {
-            background: white;
-            border: 2px solid var(--border);
-            border-radius: var(--radius-lg);
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: var(--radius-2xl);
             padding: var(--spacing-xl);
-            margin-bottom: var(--spacing-lg);
-            transition: all var(--transition-base);
+            margin-bottom: var(--spacing-xl);
+            transition: all var(--transition-slow);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
         }
 
         .reasoning-card:hover {
-            box-shadow: 0 10px 30px var(--shadow);
-        }
-
-        .analysis-section {
-            background: var(--bg-light);
-            padding: var(--spacing-lg);
-            border-radius: var(--radius-md);
-            border-left: 4px solid var(--primary-light);
-            margin-bottom: var(--spacing-lg);
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(255, 255, 255, 0.3);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2), 0 0 20px rgba(139, 92, 246, 0.3);
+            transform: translateY(-4px);
         }
 
         .argument-box {
-            background: linear-gradient(135deg, #F0F9FF 0%, #E0F2FE 100%);
-            padding: var(--spacing-lg);
-            border-radius: var(--radius-lg);
-            border: 2px solid var(--primary-light);
-            margin-bottom: var(--spacing-lg);
+            background: rgba(14, 165, 233, 0.1);
+            backdrop-filter: blur(20px) saturate(180%);
+            border: 2px solid rgba(14, 165, 233, 0.3);
+            border-radius: var(--radius-2xl);
+            padding: var(--spacing-xl);
+            margin-bottom: var(--spacing-xl);
+            box-shadow: 0 8px 32px rgba(14, 165, 233, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .argument-box::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--gradient-accent);
         }
 
         .precedent-analysis-box {
-            background: linear-gradient(135deg, #F0FDF4 0%, #DCFCE7 100%);
-            padding: var(--spacing-lg);
-            border-radius: var(--radius-lg);
-            border: 2px solid var(--secondary);
-            margin-bottom: var(--spacing-lg);
+            background: rgba(139, 92, 246, 0.1);
+            backdrop-filter: blur(20px) saturate(180%);
+            border: 2px solid rgba(139, 92, 246, 0.3);
+            border-radius: var(--radius-2xl);
+            padding: var(--spacing-xl);
+            margin-bottom: var(--spacing-xl);
+            box-shadow: 0 8px 32px rgba(139, 92, 246, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .precedent-analysis-box::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(135deg, #8B5CF6 0%, #06B6D4 100%);
+        }
+
+        /* White text for dark background */
+        h1, h2, h3, h4, h5, h6, p, label {
+            color: white;
         }
 
         .markdown-content {
             line-height: 1.8;
+            color: rgba(255, 255, 255, 0.95);
         }
 
         .markdown-content h1,
@@ -53,6 +159,8 @@
         .markdown-content h3 {
             margin-top: var(--spacing-lg);
             margin-bottom: var(--spacing-md);
+            color: white;
+            font-family: var(--font-display);
         }
 
         .markdown-content ul,
@@ -66,50 +174,55 @@
         }
 
         .markdown-content code {
-            background: var(--bg-light);
-            padding: 2px 6px;
+            background: rgba(15, 23, 42, 0.6);
+            padding: 3px 8px;
             border-radius: var(--radius-sm);
             font-family: 'Courier New', monospace;
+            color: #E0F2FE;
+            border: 1px solid rgba(14, 165, 233, 0.3);
         }
 
         .markdown-content a {
-            color: var(--primary-light);
+            color: #7DD3FC;
             text-decoration: none;
-            transition: color var(--transition-base);
+            transition: all var(--transition-base);
         }
 
         .markdown-content a:hover {
-            color: var(--primary);
+            color: #38BDF8;
             text-decoration: underline;
         }
 
         .entity-tag {
             display: inline-block;
-            background: var(--primary-light);
+            background: var(--gradient-accent);
             color: white;
-            padding: var(--spacing-xs) var(--spacing-md);
+            padding: var(--spacing-xs) var(--spacing-lg);
             border-radius: var(--radius-full);
             margin: var(--spacing-xs);
             font-size: 0.875rem;
-            font-weight: 600;
+            font-weight: 700;
             transition: all var(--transition-base);
+            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
         }
 
         .entity-tag:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 6px 20px rgba(14, 165, 233, 0.5), 0 0 20px rgba(139, 92, 246, 0.3);
         }
 
         .ai-badge {
             background: linear-gradient(135deg, #F59E0B 0%, #FBBF24 100%);
             color: white;
-            padding: var(--spacing-xs) var(--spacing-md);
+            padding: var(--spacing-sm) var(--spacing-lg);
             border-radius: var(--radius-full);
             font-size: 0.875rem;
             font-weight: 700;
             display: inline-flex;
             align-items: center;
-            gap: var(--spacing-xs);
+            gap: var(--spacing-sm);
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+            margin-bottom: var(--spacing-md);
         }
 
         .pulse-dot {
@@ -118,6 +231,33 @@
             background: white;
             border-radius: 50%;
             animation: pulse 2s infinite;
+        }
+
+        /* Glass select elements */
+        select {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            border-radius: var(--radius-xl);
+            padding: var(--spacing-md) var(--spacing-lg);
+            transition: all var(--transition-base);
+        }
+
+        select option {
+            background: #1E293B;
+            color: white;
+        }
+
+        select:hover {
+            border-color: rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        select:focus {
+            border-color: rgba(14, 165, 233, 0.5);
+            box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.2);
+            outline: none;
         }
     </style>
 </head>
@@ -141,14 +281,16 @@
 
     <!-- Main Content -->
     <div class="container">
-        <h1>🧠 AI-Powered Reasoning Framework</h1>
-        <p class="mb-3">
-            <span class="ai-badge">
-                <span class="pulse-dot"></span>
-                Powered by OpenAI GPT-4
-            </span>
-        </p>
-        <p class="mb-3">Use advanced AI to analyze how precedent cases support legal arguments in base cases.</p>
+        <div class="page-header">
+            <h1 class="page-title">🧠 AI-Powered Reasoning Framework</h1>
+            <p class="page-subtitle">
+                <span class="ai-badge">
+                    <span class="pulse-dot"></span>
+                    Powered by OpenAI GPT-4
+                </span>
+            </p>
+            <p class="page-subtitle">Use advanced AI to analyze how precedent cases support legal arguments in base cases</p>
+        </div>
 
         <!-- API Key Check -->
         <div id="api-key-warning" class="alert alert-warning hidden">
